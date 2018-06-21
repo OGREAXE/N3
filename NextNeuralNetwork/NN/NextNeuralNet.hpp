@@ -95,14 +95,29 @@ private:
     bool backpropagate(float * labelInputs, float * labels, int numLabels){
         infer(labelInputs);
         for (int i=0; i<m_numOutput; i++) {
-            float dOut = cost(m_outputs , labelInputs, MeanSquared);
+            float dOut = cost_derivate(m_outputs , labelInputs, MeanSquared);
             float dOut_dnet = dOut * derivate(m_outputs[i], outputActivation);
+            m_outputErrorGradients[i] = dOut_dnet;
             for (int j=0; j<m_numHidden; j++) {
-                m_hiddenOuputErrorGradients[i + m_numHidden * j] = dOut_dnet * m_hiddenOuputs[i];
+                float dHiddenWeight= dOut_dnet * m_hiddenOuputs[i];
+            }
+        }
+        
+        for (int j=0; j<m_numHidden; j++) {
+            m_hiddenOuputErrorGradients[j] = 0;
+            for (int i=0; i<m_numOutput; i++) {
+                m_hiddenOuputErrorGradients[j] += m_outputErrorGradients[i] * m_outputWeights[i + j * m_numOutput];
             }
             
         }
         
+        for (int i=0; i<m_numInput; i++) {
+            for (int j=0; j<m_numHidden; j++){
+                float dinputWeight = m_hiddenOuputErrorGradients[j] * derivate(m_hiddenOuputs[j], hiddenActivation) * m_inputCache[i];
+            }
+        }
+        
+        return true;
     }
     
     float derivate(float output, ActivationFunction activation){
@@ -118,6 +133,10 @@ private:
     }
     
     float cost(float * output, float * target, CostFunction costFunction){
+        return 0;
+    }
+    
+    float cost_derivate(float * output, float * target, CostFunction costFunction){
         return 0;
     }
 };
