@@ -44,6 +44,7 @@ private:
     
     unsigned int m_numOutput;
     float * m_outputWeights;
+//    float * m_outputWeightGradients;
     float * m_outputs;
     
     ActivationFunction outputActivation;
@@ -53,6 +54,11 @@ private:
     //backpropagate
     float * m_hiddenOuputErrorGradients;
     float * m_outputErrorGradients;
+    float * m_hiddenErrorGradients;
+    float * m_hiddenErrorGradientSum;
+    
+    float * m_outputWeightGradients;
+    float * m_hiddenWeightGradients;
     
     bool infer(float * inputs){
         m_inputCache[0] = 1;
@@ -92,33 +98,75 @@ private:
         return 0;
     }
     
-    bool backpropagate(float * labelInputs, float * labels, int numLabels){
-        infer(labelInputs);
+    bool backpropagate(float ** inputs, float ** labels,int trainSetSize, int batchSize){
+        int time = 0;
+        while (time * batchSize < trainSetSize) {
+            for (int i=0; i<batchSize; i++) {
+                float * anInput = inputs[time * batchSize + i];
+                float * anLabel = labels[time * batchSize + i];
+                
+                backpropagate(anInput, anLabel);
+            }
+            
+            for (int i=0; i<m_numInput; i++) {
+                for (int j=0; j<m_numHidden; j++) {
+                    int index = getWeightIndex(i, j, m_numHidden);
+                    m_hiddenWeights[index] += m_hiddenWeightGradients[index];
+                    m_hiddenWeightGradients[index] = 0;
+                }
+            }
+            
+            for (int i=0; i<m_numHidden; i++) {
+                for (int j=0; j<m_numOutput; j++) {
+                    int index = getWeightIndex(i, j, m_numOutput);
+                    m_outputWeights[index] += m_outputWeightGradients[index];
+                    m_outputWeightGradients[index] = 0;
+                }
+            }
+            
+            time ++;
+        }
+        return true;
+    }
+    
+    //backpropagate one set in a batch
+    bool backpropagate(float * inputs, float * labels){
+        infer(inputs);
+        
+        //update output layer weights
         for (int i=0; i<m_numOutput; i++) {
-            float dOut = cost_derivate(m_outputs , labelInputs, MeanSquared);
-            float dOut_dnet = dOut * derivate(m_outputs[i], outputActivation);
-            m_outputErrorGradients[i] = dOut_dnet;
+            float dOut_dnet = cost_derivate(m_outputs[i] , labels[i], MeanSquared) * derivate(m_outputs[i], outputActivation);
+            
             for (int j=0; j<m_numHidden; j++) {
-                float dHiddenWeight= dOut_dnet * m_hiddenOuputs[i];
+                int outWeightIndex = getWeightIndex(j, i, m_numOutput);
+                m_outputWeightGradients[outWeightIndex]  += dOut_dnet * m_hiddenOuputs[i];
             }
         }
         
+        //calculate hidden layer gradient
         for (int j=0; j<m_numHidden; j++) {
-            m_hiddenOuputErrorGradients[j] = 0;
             for (int i=0; i<m_numOutput; i++) {
-                m_hiddenOuputErrorGradients[j] += m_outputErrorGradients[i] * m_outputWeights[i + j * m_numOutput];
+                int outWeightIndex = getWeightIndex(j, i, m_numOutput);
+                m_hiddenErrorGradientSum[j]  += cost_derivate(m_outputs[i] , labels[i], MeanSquared) * derivate(m_outputs[i], outputActivation) * m_outputWeights[outWeightIndex];
+            }
+        }
+        
+        //update hidden layer weights
+        for (int i=0; i<m_numHidden; i++) {
+            for (int j=0; j<m_numInput; j++) {
+                int hiddenWeightIndex = getWeightIndex(j, i, m_numHidden);
+                m_hiddenWeightGradients[hiddenWeightIndex] += m_hiddenErrorGradientSum[i] * m_hiddenWeights[hiddenWeightIndex];
             }
             
         }
         
-        for (int i=0; i<m_numInput; i++) {
-            for (int j=0; j<m_numHidden; j++){
-                float dinputWeight = m_hiddenOuputErrorGradients[j] * derivate(m_hiddenOuputs[j], hiddenActivation) * m_inputCache[i];
-            }
-        }
-        
         return true;
     }
+    
+    int getWeightIndex(int inNodeIndex,int outNodeIndex, int outNodeCount){
+        return inNodeIndex * outNodeCount + outNodeIndex;
+    }
+    
     
     float derivate(float output, ActivationFunction activation){
         switch (activation) {
@@ -136,7 +184,13 @@ private:
         return 0;
     }
     
-    float cost_derivate(float * output, float * target, CostFunction costFunction){
+    float cost_derivate(float output, float target, CostFunction costFunction){
+        switch (costFunction) {
+            case MeanSquared:
+                return (output - target);
+            default:
+                break;
+        }
         return 0;
     }
 };
