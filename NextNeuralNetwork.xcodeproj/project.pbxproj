@@ -8,13 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		ED76918420D78CA6007D3661 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = ED76918320D78CA6007D3661 /* AppDelegate.m */; };
-		ED76918720D78CA6007D3661 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = ED76918620D78CA6007D3661 /* ViewController.m */; };
+		ED76918720D78CA6007D3661 /* ViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = ED76918620D78CA6007D3661 /* ViewController.mm */; };
 		ED76918A20D78CA6007D3661 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = ED76918820D78CA6007D3661 /* Main.storyboard */; };
 		ED76918C20D78CA6007D3661 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ED76918B20D78CA6007D3661 /* Assets.xcassets */; };
 		ED76918F20D78CA6007D3661 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = ED76918D20D78CA6007D3661 /* LaunchScreen.storyboard */; };
 		ED76919220D78CA6007D3661 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = ED76919120D78CA6007D3661 /* main.m */; };
 		ED76919C20D78CA6007D3661 /* NextNeuralNetworkTests.m in Sources */ = {isa = PBXBuildFile; fileRef = ED76919B20D78CA6007D3661 /* NextNeuralNetworkTests.m */; };
-		ED7691AA20D78CE6007D3661 /* NextNeuralNet.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ED7691A820D78CE6007D3661 /* NextNeuralNet.cpp */; };
+		ED7691AA20D78CE6007D3661 /* NaiveNeuralNet.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ED7691A820D78CE6007D3661 /* NaiveNeuralNet.cpp */; };
+		F3F2A984215C7166004CE143 /* MinstReader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F3F2A982215C7166004CE143 /* MinstReader.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,7 +33,7 @@
 		ED76918220D78CA6007D3661 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		ED76918320D78CA6007D3661 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		ED76918520D78CA6007D3661 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
-		ED76918620D78CA6007D3661 /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
+		ED76918620D78CA6007D3661 /* ViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ViewController.mm; sourceTree = "<group>"; };
 		ED76918920D78CA6007D3661 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		ED76918B20D78CA6007D3661 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		ED76918E20D78CA6007D3661 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -41,8 +42,10 @@
 		ED76919720D78CA6007D3661 /* NextNeuralNetworkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NextNeuralNetworkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED76919B20D78CA6007D3661 /* NextNeuralNetworkTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NextNeuralNetworkTests.m; sourceTree = "<group>"; };
 		ED76919D20D78CA6007D3661 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		ED7691A820D78CE6007D3661 /* NextNeuralNet.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NextNeuralNet.cpp; sourceTree = "<group>"; };
-		ED7691A920D78CE6007D3661 /* NextNeuralNet.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NextNeuralNet.hpp; sourceTree = "<group>"; };
+		ED7691A820D78CE6007D3661 /* NaiveNeuralNet.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NaiveNeuralNet.cpp; sourceTree = "<group>"; };
+		ED7691A920D78CE6007D3661 /* NaiveNeuralNet.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NaiveNeuralNet.hpp; sourceTree = "<group>"; };
+		F3F2A982215C7166004CE143 /* MinstReader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MinstReader.cpp; sourceTree = "<group>"; };
+		F3F2A983215C7166004CE143 /* MinstReader.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MinstReader.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,7 +91,7 @@
 				ED76918220D78CA6007D3661 /* AppDelegate.h */,
 				ED76918320D78CA6007D3661 /* AppDelegate.m */,
 				ED76918520D78CA6007D3661 /* ViewController.h */,
-				ED76918620D78CA6007D3661 /* ViewController.m */,
+				ED76918620D78CA6007D3661 /* ViewController.mm */,
 				ED76918820D78CA6007D3661 /* Main.storyboard */,
 				ED76918B20D78CA6007D3661 /* Assets.xcassets */,
 				ED76918D20D78CA6007D3661 /* LaunchScreen.storyboard */,
@@ -110,8 +113,10 @@
 		ED7691A720D78CCF007D3661 /* NN */ = {
 			isa = PBXGroup;
 			children = (
-				ED7691A820D78CE6007D3661 /* NextNeuralNet.cpp */,
-				ED7691A920D78CE6007D3661 /* NextNeuralNet.hpp */,
+				ED7691A820D78CE6007D3661 /* NaiveNeuralNet.cpp */,
+				ED7691A920D78CE6007D3661 /* NaiveNeuralNet.hpp */,
+				F3F2A982215C7166004CE143 /* MinstReader.cpp */,
+				F3F2A983215C7166004CE143 /* MinstReader.hpp */,
 			);
 			path = NN;
 			sourceTree = "<group>";
@@ -218,10 +223,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ED76918720D78CA6007D3661 /* ViewController.m in Sources */,
+				ED76918720D78CA6007D3661 /* ViewController.mm in Sources */,
 				ED76919220D78CA6007D3661 /* main.m in Sources */,
 				ED76918420D78CA6007D3661 /* AppDelegate.m in Sources */,
-				ED7691AA20D78CE6007D3661 /* NextNeuralNet.cpp in Sources */,
+				F3F2A984215C7166004CE143 /* MinstReader.cpp in Sources */,
+				ED7691AA20D78CE6007D3661 /* NaiveNeuralNet.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

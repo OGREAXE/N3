@@ -6,4 +6,4 @@
 //  Copyright © 2018 Ogreaxe. All rights reserved.
 //
 
-#include "NextNeuralNet.hpp"
+#include "NaiveNeuralNet.hpp"
