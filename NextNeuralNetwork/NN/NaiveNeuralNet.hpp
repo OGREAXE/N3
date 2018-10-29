@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <random>
 #include <vector>
+#include <limits>
 
 enum ActivationFunction{
     //f(x) = max(0,x)
@@ -46,39 +47,54 @@ private:
     unsigned int m_numInput;
     unsigned int m_numInputWeights;
     //input[0] is 1 to multiple bias
-    float * m_inputCache;
+    double * m_inputCache;
     //inputWeights[0] for bias
-    float * m_inputWeights;
+    double * m_inputWeights;
     
     //number of hidden nodes, INCLUDE bias
     unsigned int m_numHidden;
     unsigned int m_numHiddenWeights;
-    float * m_hiddenWeights;
-    float * m_hiddenOuputs;
-    float * m_previousHiddenWeights;
-    float * m_previousOutputWeights;
+    double * m_hiddenWeights;
+    double * m_hiddenOuputs;
+    double * m_previousHiddenWeights;
+    double * m_previousOutputWeights;
 
     unsigned int m_numOutput;
     unsigned int m_numOutputWeights;
-    float * m_outputWeights;
-    float * m_outputs;
+    double * m_outputWeights;
+    double * m_outputs;
     
-    float batch_size = 1000;
+    double batch_size = 1000;
+    double m_learningRate = 0.5;
+    
+    double m_epochCount = 0;
+    double m_correctRate = 0;
+    
+    double m_maxDelta = 0;
+    
+    double m_mxHiddenOutput = 0;
     
     ActivationFunction hiddenOuputActivation = RecitifiedLinear;
     ActivationFunction outputActivation = SoftMax;
     CostFunction costFunction = CrossEntrophy;
     
     //backpropagate
-//    float * m_hiddenOuputErrorGradients;
-//    float * m_outputErrorGradients;
-//    float * m_hiddenErrorGradients;
-    float * m_hiddenErrorGradientSum;
-    float * m_outputWeightGradients;
-    float * m_hiddenWeightGradients;
+//    double * m_hiddenOuputErrorGradients;
+//    double * m_outputErrorGradients;
+//    double * m_hiddenErrorGradients;
+    double * m_hiddenErrorGradientSum;
+    double * m_outputWeightGradients;
+    double * m_hiddenWeightGradients;
    
 public:
+    double getCorrectRate(){
+        return m_correctRate;
+    }
+    
     void setDataStructure(int inputNodeCount, int outputNodeCount){
+        m_epochCount = 0;
+        m_correctRate = 0;
+        
         m_numInput = inputNodeCount + 1;
         m_numOutput = outputNodeCount;
         m_numHidden = (inputNodeCount + outputNodeCount)/2 + 1;
@@ -87,23 +103,23 @@ public:
         m_numHiddenWeights = m_numInput * (m_numHidden - 1);
         m_numOutputWeights = m_numHidden * m_numOutput;
         
-        m_inputCache = new float[m_numInput];
-        m_hiddenOuputs = new float[m_numHidden];
-        m_outputs = new float[m_numOutput];
+        m_inputCache = new double[m_numInput];
+        m_hiddenOuputs = new double[m_numHidden];
+        m_outputs = new double[m_numOutput];
         
-//        m_hiddenWeights = new float[m_numHiddenWeights];
-//        m_previousHiddenWeights = new float[m_numHiddenWeights];
-//        m_outputWeights = new float[m_numOutputWeights];
-//        m_previousOutputWeights = new float[m_numOutputWeights];
+//        m_hiddenWeights = new double[m_numHiddenWeights];
+//        m_previousHiddenWeights = new double[m_numHiddenWeights];
+//        m_outputWeights = new double[m_numOutputWeights];
+//        m_previousOutputWeights = new double[m_numOutputWeights];
         
         createDataArrayAndSetValue(m_hiddenWeights, m_numHiddenWeights,0);
         createDataArrayAndSetValue(m_previousHiddenWeights, m_numHiddenWeights,0);
         createDataArrayAndSetValue(m_outputWeights, m_numOutputWeights,0);
         createDataArrayAndSetValue(m_previousOutputWeights, m_numOutputWeights,0);
         
-//        m_hiddenErrorGradientSum = new float[m_numHidden-1];
-//        m_outputWeightGradients = new float[m_numOutputWeights];
-//        m_hiddenWeightGradients = new float[m_numHiddenWeights];
+//        m_hiddenErrorGradientSum = new double[m_numHidden-1];
+//        m_outputWeightGradients = new double[m_numOutputWeights];
+//        m_hiddenWeightGradients = new double[m_numHiddenWeights];
         
         createDataArrayAndSetValue(m_hiddenErrorGradientSum, m_numHidden,0);
         createDataArrayAndSetValue(m_outputWeightGradients, m_numOutputWeights,0);
@@ -113,8 +129,8 @@ public:
         
     }
     
-    void createDataArrayAndSetValue(float * & array, int count, float value){
-        array = new float[count];
+    void createDataArrayAndSetValue(double * & array, int count, double value){
+        array = new double[count];
         for (int i=0; i< count; i++) {
             array[i] = value;
         }
@@ -137,7 +153,7 @@ public:
 //            delete [] m_inputCache;
 //        }
 //
-//        m_inputCache = new float[m_numInput];
+//        m_inputCache = new double[m_numInput];
 //        m_inputCache[0] = 1;
 //        for (int i=0; i<m_numInput; i++) {
 //            m_inputCache[i+1] = m_inputCache[dataSetOffset + i];
@@ -152,22 +168,22 @@ private:
         randomize(m_outputWeights, m_numOutputWeights, m_numHidden);
     }
     
-//    void randomize(float * data, int count, int layerInput){
-//        float range = 1 / sqrt((float)layerInput);
+//    void randomize(double * data, int count, int layerInput){
+//        double range = 1 / sqrt((double)layerInput);
 //        uint32_t rangeInt = (uint32_t)(2000000.0f * range);
 //
 //        std::default_random_engine engine(time(nullptr));
 //        std::uniform_int_distribution<> dis(0, rangeInt);
 //        for(int i = 0;i<count;i++) {
-//            float randomFloat = (float)(dis(engine)) - (float)(rangeInt / 2);
-//            data[i] = randomFloat / 1000000.0f;
+//            double randomdouble = (double)(dis(engine)) - (double)(rangeInt / 2);
+//            data[i] = randomdouble / 1000000.0f;
 //        }
 //    }
     
-    void randomize(float * data, int count, int layerInput){
+    void randomize(double * data, int count, int layerInput){
         for(int i = 0;i<count;i++) {
-            float randomFloat = gaussrand();
-            data[i] = randomFloat * 0.01;
+            double randomdouble = gaussrand();
+            data[i] = randomdouble * 0.01;
             if (data[i] > 1) {
                 int x= 0;
             }
@@ -200,9 +216,9 @@ private:
         m_inputCache[0] = 1;
         
         for (int i=1; i<m_numInput; i++) {
-//            m_inputCache[i] = ((float)inputs[i-1])/256.;
+            m_inputCache[i] = ((double)((unsigned char)inputs[i-1]))/512.;
             
-            m_inputCache[i] = (inputs[i]==0?0:1);
+//            m_inputCache[i] = (inputs[i]==0?0:1);
             
 //            printf("%d",inputs[i]==0?0:6);
 //            if ((i-1)%28==0) {
@@ -212,91 +228,106 @@ private:
         
         int numHiddenOutputGreaterThan0 = 0;
         for (int i=1; i<m_numHidden; i++) {
-            float netHiddenOutput = 0;
+            double netHiddenOutput = 0;
             for (int j=0; j<m_numInput; j++) {
                 int index = getWeightIndex(j, i-1, m_numHidden-1);
                 ////
-                float d =  m_hiddenWeights[index] * m_inputCache[j];
-                if (d>1) {
-                    d++;
-                    throw 0;
-                }
+//                double d =  m_hiddenWeights[index] * m_inputCache[j];
+//                if (d>1) {
+//                    d++;
+//                    throw 0;
+//                }
                 /////
                 
                 netHiddenOutput += m_hiddenWeights[index] * m_inputCache[j];
                 
                 /////?????
-                float x =  m_hiddenWeights[index]* m_inputCache[j];
-                if (x>1) {
-                    float w = m_hiddenWeights[index];
-                    float b = m_inputCache[index];
-                    w++;
-                    throw 0;
-                }
+//                double x =  m_hiddenWeights[index]* m_inputCache[j];
+//                if (x>1) {
+//                    double w = m_hiddenWeights[index];
+//                    double b = m_inputCache[index];
+//                    w++;
+//                    throw 0;
+//                }
                 ///////????
             }
             
             m_hiddenOuputs[i] = activate(netHiddenOutput, hiddenOuputActivation);
             
-            float d =  m_hiddenOuputs[i];
-            
-            if (d>1) {
-                float w = netHiddenOutput;
-                w++;
-                throw 0;
-            }
-            if (d>0) {
-                numHiddenOutputGreaterThan0 ++;
-            }
+            ////
+            //for ReLU, output greater than 1 is possible
+//            double d =  m_hiddenOuputs[i];
+//            if (d>1) {
+//                double w = netHiddenOutput;
+//                w++;
+//                throw 0;
+//            }
+//            ////
+//            if (d>0) {
+//                numHiddenOutputGreaterThan0 ++;
+//            }
         }
         m_hiddenOuputs[0] = 1;
         
-        if (outputActivation == SoftMax) {
-            m_hiddenOuputs[0] = 1;
-            float max = -1;
-            for (int i=1; i<m_numHidden; i++) {
-                if (m_hiddenOuputs[i] > max) {
-                    max = m_hiddenOuputs[i];
-                }
+        m_mxHiddenOutput = 0;
+        for (int i=0; i<m_numHidden; i++) {
+            if (m_hiddenOuputs[i] > m_mxHiddenOutput) {
+                m_mxHiddenOutput = m_hiddenOuputs[i];
             }
-            max = 0;
+        }
+        
+        if (outputActivation == SoftMax) {
+            double max = std::numeric_limits<double>::lowest();
             
-            float sumExp = 0;
-            std::vector<float> tmp(m_numOutput);
+            double sumExp = 0;
+            std::vector<double> tmp(m_numOutput);
+            
+            if (m_epochCount >= 150 && getCorrectRate() < 0.2) {
+                int i=0;
+            }
             for (int i=0; i<m_numOutput; i++) {
-                float netOutput = 0;
+                double netOutput = 0;
                 for (int j=0; j<m_numHidden; j++) {
                     int index = getWeightIndex(j, i, m_numOutput);
                     
                     //////////
-                    float d =  m_outputWeights[index] * m_hiddenOuputs[j];
-                    
-                    if (d>1) {
-                        float w = m_outputWeights[index];
-                        float ho = m_hiddenOuputs[j];
-                        d++;
-                        throw 0;
-                    }
+//                    double d =  m_outputWeights[index] * m_hiddenOuputs[j];
+//
+//                    if (d>1) {
+//                        double w = m_outputWeights[index];
+//                        double ho = m_hiddenOuputs[j];
+//                        d++;
+//                        throw 0;
+//                    }
                     //////////
                     
                     netOutput += m_outputWeights[index] * m_hiddenOuputs[j];
                 }
-                tmp[i] = netOutput- max;
-                
-                sumExp += exp(netOutput-max);
-                if (sumExp == 0) {
-                    i++;
-                    throw 0;
+                tmp[i] = netOutput;
+                checkoverflow(netOutput);
+                if (netOutput > max) {
+                    max = netOutput;
                 }
             }
             
             for (int i=0; i<m_numOutput; i++) {
-                m_outputs[i] = exp(tmp[i])/sumExp;
+                float oldsum = sumExp;
+                sumExp += exp(tmp[i]-max);
+                checkoverflow(sumExp);
+            }
+            
+            if (sumExp == 0) {
+                throw 0;
+            }
+            
+            for (int i=0; i<m_numOutput; i++) {
+                m_outputs[i] = exp(tmp[i]-max)/sumExp;
+                checkoverflow(m_outputs[i]);
             }
         }
         else{
             for (int i=0; i<m_numOutput; i++) {
-                float netOutput = 0;
+                double netOutput = 0;
                 for (int j=0; j<m_numHidden; j++) {
                     int index = getWeightIndex(j, i, m_numOutput);
                     netOutput += m_outputWeights[index] * m_hiddenOuputs[j];
@@ -309,7 +340,7 @@ private:
         return true;
     }
     
-    float activate(float input, ActivationFunction activation){
+    double activate(double input, ActivationFunction activation){
         switch (activation) {
             case Sigmod:{
                 double v = 1./(1. + exp(-input));
@@ -327,7 +358,7 @@ private:
 public:
     bool train(int batchSize){
         int epochCnt = 0;
-//        float error = 0;
+//        double error = 0;
         this->batch_size = batchSize;
         while (epochCnt * batchSize < m_trainDataSetCount) {
             InputType * batchInput = m_trainDataSet + epochCnt * batchSize * (m_numInput-1);
@@ -356,18 +387,19 @@ public:
 //            printf("error %.8f\n",error);
         }
 //        printf("train finish epoch");
+        m_epochCount += epochCnt;
         return false;
     }
     
     void test(){
-        float error = 0;
+        double error = 0;
         for (int i=0; i<m_testDataSetCount-1; i++) {
             InputType * anInput = m_testDataSet + i * (m_numInput-1);
             OutputType * anLabel = m_testLabels + i * m_numOutput;
             infer(anInput);
             error += cost(m_outputs, anLabel, costFunction);
         }
-        error /= (float)m_testDataSetCount;
+        error /= (double)m_testDataSetCount;
         
         if (error < 0.1) {
             printf("train finish, error %.3f",error);
@@ -376,7 +408,7 @@ public:
     }
     
     void realtest(){
-        float right = 0;
+        double right = 0;
         for (int i=0; i<m_testDataSetCount-1; i++) {
             InputType * anInput = m_testDataSet + i * (m_numInput-1);
             OutputType * anLabel = m_testLabels + i * m_numOutput;
@@ -389,10 +421,10 @@ public:
                 }
             }
             
-            float max = -1;
+            double max = -1;
             int infer = -1;
             for (int i=0; i<m_numOutput; i++) {
-                float o0 = m_outputs[i];
+                double o0 = m_outputs[i];
                 
                 if (m_outputs[i] > max) {
                     max = m_outputs[i];
@@ -414,36 +446,49 @@ public:
 //
 //            int x = 0;
         }
-        float  correct = (float)right/m_testDataSetCount;
-        
-        printf("train finish epoch, right %.8f\n",correct);
+        double  correct = (double)right/m_testDataSetCount;
+//        if (correct < m_correctRate) {
+//            m_learningRate = m_learningRate * 0.2;
+//        }
+        m_correctRate = correct;
+        printf("train finish epoch %f, right %.8f\n",m_epochCount,correct);
     }
     
 private:
     void updateWeights(){
-        float learningRate = 0.05;
-        float a = 0.2;
+        
+//        if ((long long)(m_epochCount+1) % 40==0 && m_learningRate > 0.05) {
+//            m_learningRate = m_learningRate * 0.4;
+//        }
+    
+        double momentum = 0.75;
         int c = 0;
         for (int i=0; i<m_numInput; i++) {
             for (int j=0; j<m_numHidden-1; j++) {
                 int index = getWeightIndex(i, j, m_numHidden-1);
                 
-                float weight = m_hiddenWeights[index];
-                float grad = m_hiddenWeightGradients[index]/batch_size;
+                double weight = m_hiddenWeights[index];
+                double grad = m_hiddenWeightGradients[index]/batch_size;
                 if (grad !=0) {
                     c++;
                 }
                 
 //                m_hiddenWeights[index] -= learningRate * m_hiddenWeightGradients[index]/batch_size;
+                double delta = - (1-momentum)*m_learningRate * grad * m_inputCache[i] + momentum *(m_hiddenWeights[index] -  m_previousHiddenWeights[index]);
+                checkoverflow(m_hiddenWeights[index]);
+                delta = clipDelta(delta);
+                m_hiddenWeights[index] = m_hiddenWeights[index] + delta ;
                 
-                m_hiddenWeights[index] = m_hiddenWeights[index] - (1-a)*learningRate * grad * m_inputCache[i] + a *(m_hiddenWeights[index] -  m_previousHiddenWeights[index]);
+                if(m_maxDelta < abs(delta)){
+                    m_maxDelta = abs(delta);
+                }
                 
                 m_previousHiddenWeights[index] = weight;
                 if (m_hiddenWeightGradients[index]/batch_size > 1) {
-                    float k = m_hiddenWeightGradients[index]/batch_size;
-                    float x= m_hiddenWeights[index];
-                    x++;
-                    throw 0;
+//                    double k = m_hiddenWeightGradients[index]/batch_size;
+//                    double x= m_hiddenWeights[index];
+//                    x++;
+//                    throw 0;
                 }
                 m_hiddenWeightGradients[index] = 0;
             }
@@ -453,22 +498,25 @@ private:
             for (int j=0; j<m_numOutput; j++) {
                 int index = getWeightIndex(i, j, m_numOutput);
                 
-                float weight = m_outputWeights[index];
-                float grad = m_outputWeightGradients[index]/batch_size;
+                double weight = m_outputWeights[index];
+                double grad = m_outputWeightGradients[index]/batch_size;
                 if (grad !=0) {
                     c++;
                 }
                 
 //                m_outputWeights[index] -= learningRate *m_outputWeightGradients[index];
-                m_outputWeights[index] = m_outputWeights[index] - (1-a)*learningRate * grad * m_hiddenOuputs[i] + a *(m_outputWeights[index] -  m_previousOutputWeights[index]);
+                double delta = - (1-momentum)*m_learningRate * grad * m_hiddenOuputs[i] + momentum *(m_outputWeights[index] -  m_previousOutputWeights[index]);
+//                m_outputWeights[index] = m_outputWeights[index] - (1-momentum)*learningRate * grad * m_hiddenOuputs[i] + momentum *(m_outputWeights[index] -  m_previousOutputWeights[index]);
+                checkoverflow(m_outputWeights[index]);
+                m_outputWeights[index] = m_outputWeights[index] + delta;
                 
                 m_previousOutputWeights[index] = weight;
                 
                 if (m_outputWeightGradients[index]/batch_size > 1) {
-                    float k = m_outputWeightGradients[index]/batch_size;
-                    float x= m_outputWeights[index];
-                    x++;
-                    throw 0;
+//                    double k = m_outputWeightGradients[index]/batch_size;
+//                    double x= m_outputWeights[index];
+//                    x++;
+//                    throw 0;
                 }
                 
                 m_outputWeightGradients[index] = 0;
@@ -485,15 +533,35 @@ private:
 //        printf("none zero weight gradient count is %d",c);
     }
     
+    bool checkoverflow(double value){
+        if (std::isnan(value)) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    double clipDelta(double val){
+        
+        if (val < -1) {
+            return -0.1;
+        }
+        else if (val > 1) {
+            return 0.1;
+        }
+        return val;
+    }
+
     //backpropagate one set in a batch
     bool backpropagate(OutputType * labels){
         //update output layer weights
         for (int i=0; i<m_numOutput; i++) {
-            float dOut_dnet = cost_derivate(m_outputs[i] , labels[i], costFunction) * derivate(m_outputs[i], outputActivation);
+            double dOut_dnet = cost_derivate(m_outputs[i] , labels[i], costFunction) * derivate(m_outputs[i], outputActivation);
             
             for (int j=0; j<m_numHidden; j++) {
                 int outWeightIndex = getWeightIndex(j, i, m_numOutput);
                 m_outputWeightGradients[outWeightIndex]  += dOut_dnet * m_hiddenOuputs[j];
+                checkoverflow(m_outputWeightGradients[outWeightIndex]);
             }
         }
         
@@ -510,13 +578,14 @@ private:
             for (int j=0; j<m_numInput; j++) {
                 int hiddenWeightIndex = getWeightIndex(j, i, m_numHidden-1);
                 m_hiddenWeightGradients[hiddenWeightIndex] += m_hiddenErrorGradientSum[i] *derivate(m_hiddenOuputs[i], hiddenOuputActivation)* m_hiddenWeights[hiddenWeightIndex];
+                checkoverflow(m_hiddenWeightGradients[hiddenWeightIndex]);
                 
-                if (m_hiddenWeightGradients[hiddenWeightIndex]/batch_size > 1) {
-                    float heg = m_hiddenErrorGradientSum[i];
-                    float d = derivate(m_hiddenOuputs[i], hiddenOuputActivation);
-                    float weight  = m_hiddenWeights[hiddenWeightIndex];
-                    int sss = 0;
-                }
+//                if (m_hiddenWeightGradients[hiddenWeightIndex]/batch_size > 1) {
+//                    double heg = m_hiddenErrorGradientSum[i];
+//                    double d = derivate(m_hiddenOuputs[i], hiddenOuputActivation);
+//                    double weight  = m_hiddenWeights[hiddenWeightIndex];
+//                    int sss = 0;
+//                }
             }
             
         }
@@ -529,7 +598,7 @@ private:
     }
     
     
-    float derivate(float output, ActivationFunction activation){
+    double derivate(double output, ActivationFunction activation){
         switch (activation) {
             case Sigmod:
                 return output * (1.-output);
@@ -544,32 +613,32 @@ private:
         return 0;
     }
     
-    float cost(float * output, OutputType * target, CostFunction costFunction){
+    double cost(double * output, OutputType * target, CostFunction costFunction){
         switch (costFunction) {
             case MeanSquared:
             {
-                float err = 0;
+                double err = 0;
                 for (int i=0; i<m_numOutput; i++) {
-                    err += (output[i] - (float)target[i]) * (output[i] - (float)target[i]) /2.;
+                    err += (output[i] - (double)target[i]) * (output[i] - (double)target[i]) /2.;
                 }
                 return err;
             }
             case CrossEntrophy:
             {
                 if (outputActivation == SoftMax) {
-                    float sum = 0;
+                    double sum = 0;
                     for (int i=0; i<m_numOutput; i++) {
-                        float p = output[i];
-                        float t = target[i];
+                        double p = output[i];
+                        double t = target[i];
                         sum += t*log(p);
                     }
                     return -sum;
                 }
                 else{
-                    float sum = 0;
+                    double sum = 0;
                     for (int i=0; i<m_numOutput; i++) {
-                        float r = output[i];
-                        float t = target[i];
+                        double r = output[i];
+                        double t = target[i];
                         sum += t*log(r) + (1-t)*log(1-r);
                     }
                     return -sum;
@@ -581,11 +650,11 @@ private:
         return 0;
     }
     
-    float cost_derivate(float output, OutputType target, CostFunction costFunction){
-        float t = target;
+    double cost_derivate(double output, OutputType target, CostFunction costFunction){
+        double t = target;
         switch (costFunction) {
             case MeanSquared:
-                return (output - (float)target);
+                return (output - (double)target);
             case CrossEntrophy:
             {
                 if (outputActivation == SoftMax) {
@@ -599,6 +668,31 @@ private:
                 break;
         }
         return 0;
+    }
+ 
+public:
+    void lookAnInput(InputType * inputo, OutputType * labelo, int offset){
+        InputType * input = inputo + 28 * 28 * offset;
+        OutputType * anLabel = labelo + 10 * offset;
+        int num = -1;
+        for (int i=0; i<m_numOutput; i++) {
+            if (anLabel[i] == 1) {
+                num = i;
+            }
+        }
+        
+        printf("number is %d",num);
+        for (int i=0; i<28; i++) {
+            for (int j=0; j<28; j++) {
+                if (input[i+28 * j] != 0) {
+                    printf("*");
+                }
+                else {
+                    printf("_");
+                }
+            }
+            printf("\n");
+        }
     }
 };
 
