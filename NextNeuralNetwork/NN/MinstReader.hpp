@@ -14,6 +14,7 @@
 #include <fstream>
 #include <string>
 #include "NaiveNeuralNet.hpp"
+#include <time.h>
 
 using namespace std;
 
@@ -26,6 +27,7 @@ class MinstReader{
     }
     
 private:
+    int m_batchSize = 1;
     uint32_t num_items;
     uint32_t num_labels;
     uint32_t num_testItems;
@@ -37,6 +39,20 @@ private:
     string label_filename;
     string test_image_filename;
     string test_label_filename;
+    
+    string timeStr(){
+        char tmp[64];
+        time_t t = time(NULL);
+        tm *_tm = localtime(&t);
+        int year  = _tm->tm_year+1900;
+        int month = _tm->tm_mon+1;
+        int date  = _tm->tm_mday;
+        int hh = _tm->tm_hour;
+        int mm = _tm->tm_min;
+        int ss = _tm->tm_sec;
+        sprintf(tmp,"%02d:%02d:%02d>",hh,mm,ss);
+        return string(tmp);
+    }
 public:
     void read_mnist(const char* image_filename, const char* label_filename,const char* test_image_filename, const char* test_label_filename){
         
@@ -50,6 +66,13 @@ public:
     
     void testMiniBatch(){
         // Open files
+        std::ifstream image_file(image_filename, std::ios::in | std::ios::binary);
+        std::ifstream label_file(label_filename, std::ios::in | std::ios::binary);
+        
+        if(!read_header(image_file, label_file, rows, cols, num_items, num_labels)){
+            printf("read error");
+            return;
+        }
         
         std::ifstream test_image_file(test_image_filename, std::ios::in | std::ios::binary);
         std::ifstream test_label_file(test_label_filename, std::ios::in | std::ios::binary);
@@ -77,51 +100,52 @@ public:
         char* labels_batch_original= nullptr ;
         
         int pass = 0;
-        while (1) {
-            std::ifstream image_file(image_filename, std::ios::in | std::ios::binary);
-            std::ifstream label_file(label_filename, std::ios::in | std::ios::binary);
-            
-            if(!read_header(image_file, label_file, rows, cols, num_items, num_labels)){
-                printf("read error");
-                return;
+        
+        char* pixels_all = new char[rows * cols * num_items];
+        
+        double* labels_all = new double[10 * num_items]; //0~9
+        
+        char* labels_all_original = new char[ num_items];
+        
+        //            nn->lookAnInput(pixels_test, labels_test, 5000);
+        
+        image_file.read(pixels_all, rows * cols * num_items);
+        // read label
+        label_file.read(labels_all_original, num_items);
+        
+        
+        printf("%s read finish",timeStr().c_str());
+        for (int i=0; i<num_items; i++) {
+            for (int shift = 0; shift < 10; shift ++) {
+                labels_all[i*10 + shift] =0; ;
             }
             
+            labels_all[i*10 + labels_all_original[i]] = 1;
+        }
+        
+        while (1) {
             //train data
-            int batchsize = 2048;
+            int batchsize = m_batchSize;
             
-            char* pixels_batch = new char[rows * cols * batchsize];
-            
-            double* labels_batch = new double[10 * batchsize]; //0~9
-            
-            char* labels_batch_original = new char[ batchsize];
-            
-//            nn->lookAnInput(pixels_test, labels_test, 5000);
-            
-            for (int item_id = 0; item_id < num_items; item_id += batchsize) {
+            int step = batchsize;
+//            int step = 1;
+            for (int item_id = 0; item_id < num_items; item_id += step) {
                 // read image pixel
                 int size = batchsize;
                 if (item_id + batchsize > num_items) {
                     size = num_items - item_id;
                 }
-                image_file.read(pixels_batch, rows * cols * size);
-                // read label
-                label_file.read(labels_batch_original, size);
-
-                for (int i=0; i<size; i++) {
-                    for (int shift = 0; shift < 10; shift ++) {
-                        labels_batch[i*10 + shift] =0; ;
-                    }
-
-                    labels_batch[i*10 + labels_batch_original[i]] = 1;
-                }
-
+                
+                pixels_batch = pixels_all + item_id * rows * cols;
+                labels_batch = labels_all + item_id * 10;
+                
                 nn->setTrainData(pixels_batch, labels_batch, size);
                 nn->train(size);
             }
             
             nn->setTestData(pixels_test, labels_test, num_testItems);
             nn->realtest();
-            printf("after 1 epoch, error is %.6f",nn->getCorrectRate());
+            printf("%s after 1 epoch, correct  is %.6f\n",timeStr().c_str(), nn->getCorrectRate());
             
             pass ++;
             if (nn->getCorrectRate() > 0.9) {
@@ -133,10 +157,100 @@ public:
         }
         
         printf("train finish");
-        delete[] pixels_batch;
-        delete[] labels_batch;
-        delete[] labels_batch_original;
+        delete[] pixels_all;
+        delete[] labels_all;
+        delete[] labels_all_original;
     }
+    
+//    void testMiniBatch(){
+//        // Open files
+//
+//        std::ifstream test_image_file(test_image_filename, std::ios::in | std::ios::binary);
+//        std::ifstream test_label_file(test_label_filename, std::ios::in | std::ios::binary);
+//
+//        if(!read_header(test_image_file, test_label_file, rows, cols, num_testItems, num_testLabels)){
+//            return;
+//        }
+//
+//        NaiveNeuralNet<char, double> * nn = new NaiveNeuralNet<char, double>();
+//        nn->setDataStructure(rows * cols, 10);
+//        if (this->neuralNet) {
+//            delete this->neuralNet;
+//        }
+//        this->neuralNet = nn;
+//
+//        //test data
+//        char* pixels_test = new char[rows * cols * num_testItems];
+//
+//        double* labels_test = new double[10 * num_testItems];
+//        createTestData(test_image_file, test_label_file, pixels_test, labels_test, rows, cols, num_testItems);
+//        nn->setTestData(pixels_test, labels_test, num_testItems);
+//
+//        char* pixels_batch = nullptr;
+//        double* labels_batch= nullptr;  //0~9
+//        char* labels_batch_original= nullptr ;
+//
+//        int pass = 0;
+//        while (1) {
+//            std::ifstream image_file(image_filename, std::ios::in | std::ios::binary);
+//            std::ifstream label_file(label_filename, std::ios::in | std::ios::binary);
+//
+//            if(!read_header(image_file, label_file, rows, cols, num_items, num_labels)){
+//                printf("read error");
+//                return;
+//            }
+//
+//            //train data
+//            int batchsize = 2048;
+//
+//            char* pixels_batch = new char[rows * cols * batchsize];
+//
+//            double* labels_batch = new double[10 * batchsize]; //0~9
+//
+//            char* labels_batch_original = new char[ batchsize];
+//
+////            nn->lookAnInput(pixels_test, labels_test, 5000);
+//
+//            for (int item_id = 0; item_id < num_items; item_id += batchsize) {
+//                // read image pixel
+//                int size = batchsize;
+//                if (item_id + batchsize > num_items) {
+//                    size = num_items - item_id;
+//                }
+//                image_file.read(pixels_batch, rows * cols * size);
+//                // read label
+//                label_file.read(labels_batch_original, size);
+//
+//                for (int i=0; i<size; i++) {
+//                    for (int shift = 0; shift < 10; shift ++) {
+//                        labels_batch[i*10 + shift] =0; ;
+//                    }
+//
+//                    labels_batch[i*10 + labels_batch_original[i]] = 1;
+//                }
+//
+//                nn->setTrainData(pixels_batch, labels_batch, size);
+//                nn->train(size);
+//            }
+//
+//            nn->setTestData(pixels_test, labels_test, num_testItems);
+//            nn->realtest();
+//            printf("after 1 epoch, error is %.6f",nn->getCorrectRate());
+//
+//            pass ++;
+//            if (nn->getCorrectRate() > 0.9) {
+//                break;
+//            }
+//            if (pass > 10000) {
+//                break;
+//            }
+//        }
+//
+//        printf("train finish");
+//        delete[] pixels_batch;
+//        delete[] labels_batch;
+//        delete[] labels_batch_original;
+//    }
     
     void testOneEPochLarge(){
         // Open files

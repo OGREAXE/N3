@@ -20,7 +20,13 @@ using namespace std;
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
-    
+
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+        [self startTraining];
+    });
+}
+
+-(void)startTraining{
     NSString *docpath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0];
     docpath = [docpath stringByAppendingString:@"/minst/"];
     string base_dir = docpath.UTF8String;

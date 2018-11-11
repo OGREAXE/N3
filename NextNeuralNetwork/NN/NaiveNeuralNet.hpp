@@ -64,8 +64,11 @@ private:
     double * m_outputWeights;
     double * m_outputs;
     
+    double * m_outputDerivative;
+    
     double batch_size = 1000;
-    double m_learningRate = 0.5;
+    double m_learningRate = 0.0007;
+    double m_momentum = 0.95;
     
     double m_epochCount = 0;
     double m_correctRate = 0;
@@ -106,6 +109,8 @@ public:
         m_inputCache = new double[m_numInput];
         m_hiddenOuputs = new double[m_numHidden];
         m_outputs = new double[m_numOutput];
+        
+        m_outputDerivative = new double[m_numOutput];
         
 //        m_hiddenWeights = new double[m_numHiddenWeights];
 //        m_previousHiddenWeights = new double[m_numHiddenWeights];
@@ -216,7 +221,7 @@ private:
         m_inputCache[0] = 1;
         
         for (int i=1; i<m_numInput; i++) {
-            m_inputCache[i] = ((double)((unsigned char)inputs[i-1]))/512.;
+            m_inputCache[i] = ((double)((unsigned char)inputs[i-1]))/256.;
             
 //            m_inputCache[i] = (inputs[i]==0?0:1);
             
@@ -282,9 +287,9 @@ private:
             double sumExp = 0;
             std::vector<double> tmp(m_numOutput);
             
-            if (m_epochCount >= 150 && getCorrectRate() < 0.2) {
-                int i=0;
-            }
+//            if (m_epochCount >= 150 && getCorrectRate() < 0.2) {
+//                int i=0;
+//            }
             for (int i=0; i<m_numOutput; i++) {
                 double netOutput = 0;
                 for (int j=0; j<m_numHidden; j++) {
@@ -431,9 +436,13 @@ public:
                     infer = i;
                 }
             }
+            
             if (infer >= 0) {
                 if (infer == num) {
                     right ++;
+                }
+                else {
+//                    lookAnInput(anInput,anLabel,0);
                 }
             }
             
@@ -451,7 +460,7 @@ public:
 //            m_learningRate = m_learningRate * 0.2;
 //        }
         m_correctRate = correct;
-        printf("train finish epoch %f, right %.8f\n",m_epochCount,correct);
+//        printf("train finish epoch %f, right %.8f\n",m_epochCount,correct);
     }
     
 private:
@@ -461,7 +470,7 @@ private:
 //            m_learningRate = m_learningRate * 0.4;
 //        }
     
-        double momentum = 0.75;
+        double momentum = m_momentum;
         int c = 0;
         for (int i=0; i<m_numInput; i++) {
             for (int j=0; j<m_numHidden-1; j++) {
@@ -476,7 +485,7 @@ private:
 //                m_hiddenWeights[index] -= learningRate * m_hiddenWeightGradients[index]/batch_size;
                 double delta = - (1-momentum)*m_learningRate * grad * m_inputCache[i] + momentum *(m_hiddenWeights[index] -  m_previousHiddenWeights[index]);
                 checkoverflow(m_hiddenWeights[index]);
-                delta = clipDelta(delta);
+//                delta = clipDelta(delta);
                 m_hiddenWeights[index] = m_hiddenWeights[index] + delta ;
                 
                 if(m_maxDelta < abs(delta)){
@@ -484,12 +493,12 @@ private:
                 }
                 
                 m_previousHiddenWeights[index] = weight;
-                if (m_hiddenWeightGradients[index]/batch_size > 1) {
+//                if (m_hiddenWeightGradients[index]/batch_size > 1) {
 //                    double k = m_hiddenWeightGradients[index]/batch_size;
 //                    double x= m_hiddenWeights[index];
 //                    x++;
 //                    throw 0;
-                }
+//                }
                 m_hiddenWeightGradients[index] = 0;
             }
         }
@@ -512,12 +521,12 @@ private:
                 
                 m_previousOutputWeights[index] = weight;
                 
-                if (m_outputWeightGradients[index]/batch_size > 1) {
+//                if (m_outputWeightGradients[index]/batch_size > 1) {
 //                    double k = m_outputWeightGradients[index]/batch_size;
 //                    double x= m_outputWeights[index];
 //                    x++;
 //                    throw 0;
-                }
+//                }
                 
                 m_outputWeightGradients[index] = 0;
                 
@@ -533,12 +542,12 @@ private:
 //        printf("none zero weight gradient count is %d",c);
     }
     
-    bool checkoverflow(double value){
+    inline bool checkoverflow(double value){
         if (std::isnan(value)) {
-            return false;
+            throw 0;
         }
-        
         return true;
+//        return !std::isnan(value);
     }
     
     double clipDelta(double val){
@@ -556,11 +565,13 @@ private:
     bool backpropagate(OutputType * labels){
         //update output layer weights
         for (int i=0; i<m_numOutput; i++) {
-            double dOut_dnet = cost_derivate(m_outputs[i] , labels[i], costFunction) * derivate(m_outputs[i], outputActivation);
+//            double dOut_dnet = cost_derivate(m_outputs[i] , labels[i], costFunction) * derivate(m_outputs[i], outputActivation);
+            
+            m_outputDerivative[i] = cost_derivate(m_outputs[i] , labels[i], costFunction) * derivate(m_outputs[i], outputActivation);
             
             for (int j=0; j<m_numHidden; j++) {
                 int outWeightIndex = getWeightIndex(j, i, m_numOutput);
-                m_outputWeightGradients[outWeightIndex]  += dOut_dnet * m_hiddenOuputs[j];
+                m_outputWeightGradients[outWeightIndex]  += m_outputDerivative[i] * m_hiddenOuputs[j];
                 checkoverflow(m_outputWeightGradients[outWeightIndex]);
             }
         }
@@ -569,7 +580,7 @@ private:
         for (int j=1; j<m_numHidden; j++) {
             for (int i=0; i<m_numOutput; i++) {
                 int outWeightIndex = getWeightIndex(j, i, m_numOutput);
-                m_hiddenErrorGradientSum[j-1]  += cost_derivate(m_outputs[i] , labels[i], costFunction) * derivate(m_outputs[i], outputActivation) * m_outputWeights[outWeightIndex];
+                m_hiddenErrorGradientSum[j-1]  += m_outputDerivative[i] * m_outputWeights[outWeightIndex];
             }
         }
         
