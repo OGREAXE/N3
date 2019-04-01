@@ -309,7 +309,7 @@ private:
                     netOutput += m_outputWeights[index] * m_hiddenOuputs[j];
                 }
                 tmp[i] = netOutput;
-                checkoverflow(netOutput);
+ //               checkoverflow(netOutput);
                 if (netOutput > max) {
                     max = netOutput;
                 }
@@ -318,7 +318,7 @@ private:
             for (int i=0; i<m_numOutput; i++) {
                 float oldsum = sumExp;
                 sumExp += exp(tmp[i]-max);
-                checkoverflow(sumExp);
+ //               checkoverflow(sumExp);
             }
             
             if (sumExp == 0) {
@@ -327,7 +327,7 @@ private:
             
             for (int i=0; i<m_numOutput; i++) {
                 m_outputs[i] = exp(tmp[i]-max)/sumExp;
-                checkoverflow(m_outputs[i]);
+//                checkoverflow(m_outputs[i]);
             }
         }
         else{
@@ -349,7 +349,7 @@ private:
         switch (activation) {
             case Sigmod:{
                 double v = 1./(1. + exp(-input));
-                assert(v!=0);
+                //assert(v!=0);
                 return v;
             }
             case RecitifiedLinear:
@@ -484,7 +484,7 @@ private:
                 
 //                m_hiddenWeights[index] -= learningRate * m_hiddenWeightGradients[index]/batch_size;
                 double delta = - (1-momentum)*m_learningRate * grad * m_inputCache[i] + momentum *(m_hiddenWeights[index] -  m_previousHiddenWeights[index]);
-                checkoverflow(m_hiddenWeights[index]);
+//                checkoverflow(m_hiddenWeights[index]);
 //                delta = clipDelta(delta);
                 m_hiddenWeights[index] = m_hiddenWeights[index] + delta ;
                 
@@ -516,7 +516,7 @@ private:
 //                m_outputWeights[index] -= learningRate *m_outputWeightGradients[index];
                 double delta = - (1-momentum)*m_learningRate * grad * m_hiddenOuputs[i] + momentum *(m_outputWeights[index] -  m_previousOutputWeights[index]);
 //                m_outputWeights[index] = m_outputWeights[index] - (1-momentum)*learningRate * grad * m_hiddenOuputs[i] + momentum *(m_outputWeights[index] -  m_previousOutputWeights[index]);
-                checkoverflow(m_outputWeights[index]);
+//                checkoverflow(m_outputWeights[index]);
                 m_outputWeights[index] = m_outputWeights[index] + delta;
                 
                 m_previousOutputWeights[index] = weight;
@@ -572,7 +572,7 @@ private:
             for (int j=0; j<m_numHidden; j++) {
                 int outWeightIndex = getWeightIndex(j, i, m_numOutput);
                 m_outputWeightGradients[outWeightIndex]  += m_outputDerivative[i] * m_hiddenOuputs[j];
-                checkoverflow(m_outputWeightGradients[outWeightIndex]);
+ //               checkoverflow(m_outputWeightGradients[outWeightIndex]);
             }
         }
         
@@ -586,17 +586,11 @@ private:
         
         //update hidden layer weights
         for (int i=0; i<m_numHidden-1; i++) {
+			double tmpHiddenDeriv = m_hiddenErrorGradientSum[i] * derivate(m_hiddenOuputs[i], hiddenOuputActivation);
             for (int j=0; j<m_numInput; j++) {
                 int hiddenWeightIndex = getWeightIndex(j, i, m_numHidden-1);
-                m_hiddenWeightGradients[hiddenWeightIndex] += m_hiddenErrorGradientSum[i] *derivate(m_hiddenOuputs[i], hiddenOuputActivation)* m_hiddenWeights[hiddenWeightIndex];
-                checkoverflow(m_hiddenWeightGradients[hiddenWeightIndex]);
-                
-//                if (m_hiddenWeightGradients[hiddenWeightIndex]/batch_size > 1) {
-//                    double heg = m_hiddenErrorGradientSum[i];
-//                    double d = derivate(m_hiddenOuputs[i], hiddenOuputActivation);
-//                    double weight  = m_hiddenWeights[hiddenWeightIndex];
-//                    int sss = 0;
-//                }
+                //m_hiddenWeightGradients[hiddenWeightIndex] += m_hiddenErrorGradientSum[i] *derivate(m_hiddenOuputs[i], hiddenOuputActivation)* m_hiddenWeights[hiddenWeightIndex];
+				m_hiddenWeightGradients[hiddenWeightIndex] += tmpHiddenDeriv* m_hiddenWeights[hiddenWeightIndex];
             }
             
         }
