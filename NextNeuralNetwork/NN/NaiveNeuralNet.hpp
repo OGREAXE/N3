@@ -88,13 +88,25 @@ private:
     double * m_hiddenErrorGradientSum;
     double * m_outputWeightGradients;
     double * m_hiddenWeightGradients;
+    
+    
+    int ** m_inputWeightIndexCache;
+    int ** m_outputWeightIndexCache;
    
 public:
+    ~NaiveNeuralNet(){
+        release2dWeightIndexCache(m_inputWeightIndexCache,m_numInput);
+        release2dWeightIndexCache(m_outputWeightIndexCache,m_numHidden);
+    }
+    
     double getCorrectRate(){
         return m_correctRate;
     }
     
     void setDataStructure(int inputNodeCount, int outputNodeCount){
+        release2dWeightIndexCache(m_inputWeightIndexCache,m_numInput);
+        release2dWeightIndexCache(m_outputWeightIndexCache,m_numHidden);
+        
         m_epochCount = 0;
         m_correctRate = 0;
         
@@ -132,6 +144,32 @@ public:
         
         randomizeWeights();
         
+        //weight index cache
+        m_inputWeightIndexCache = create2dWeightIndexCache(m_numInput,m_numHidden-1);
+        m_outputWeightIndexCache = create2dWeightIndexCache(m_numHidden,m_numOutput);
+    }
+    
+    int ** create2dWeightIndexCache(int inputCnt, int outCnt){
+        int ** row = new int* [inputCnt];
+        for (int i = 0; i<inputCnt; i++) {
+            int * col = new int[outCnt];
+            row[i] = col;
+            for (int j = 0; j<outCnt; j++) {
+                col[j] = i * outCnt + j;
+            }
+        }
+        return row;
+    }
+    
+    void release2dWeightIndexCache(int ** cache, int inputCnt){
+        if (!cache) {
+            return;
+        }
+        
+        for (int i = 0; i<inputCnt; i++) {
+            delete [] cache[i];
+        }
+        delete [] cache;
     }
     
     void createDataArrayAndSetValue(double * & array, int count, double value){
@@ -235,7 +273,8 @@ private:
         for (int i=1; i<m_numHidden; i++) {
             double netHiddenOutput = 0;
             for (int j=0; j<m_numInput; j++) {
-                int index = getWeightIndex(j, i-1, m_numHidden-1);
+//                int index = getWeightIndex(j, i-1, m_numHidden-1);
+                int index = getInputWeightIndex(j, i-1);
                 ////
 //                double d =  m_hiddenWeights[index] * m_inputCache[j];
 //                if (d>1) {
@@ -293,7 +332,8 @@ private:
             for (int i=0; i<m_numOutput; i++) {
                 double netOutput = 0;
                 for (int j=0; j<m_numHidden; j++) {
-                    int index = getWeightIndex(j, i, m_numOutput);
+//                    int index = getWeightIndex(j, i, m_numOutput);
+                    int index = getOutputWeightIndex(j, i);
                     
                     //////////
 //                    double d =  m_outputWeights[index] * m_hiddenOuputs[j];
@@ -334,7 +374,8 @@ private:
             for (int i=0; i<m_numOutput; i++) {
                 double netOutput = 0;
                 for (int j=0; j<m_numHidden; j++) {
-                    int index = getWeightIndex(j, i, m_numOutput);
+//                    int index = getWeightIndex(j, i, m_numOutput);
+                    int index = getOutputWeightIndex(j, i);
                     netOutput += m_outputWeights[index] * m_hiddenOuputs[j];
                 }
                 
@@ -474,7 +515,8 @@ private:
         int c = 0;
         for (int i=0; i<m_numInput; i++) {
             for (int j=0; j<m_numHidden-1; j++) {
-                int index = getWeightIndex(i, j, m_numHidden-1);
+//                int index = getWeightIndex(i, j, m_numHidden-1);
+                int index = getInputWeightIndex(i, j);
                 
                 double weight = m_hiddenWeights[index];
                 double grad = m_hiddenWeightGradients[index]/batch_size;
@@ -505,7 +547,8 @@ private:
         
         for (int i=0; i<m_numHidden; i++) {
             for (int j=0; j<m_numOutput; j++) {
-                int index = getWeightIndex(i, j, m_numOutput);
+//                int index = getWeightIndex(i, j, m_numOutput);
+                int index = getOutputWeightIndex(i, j);
                 
                 double weight = m_outputWeights[index];
                 double grad = m_outputWeightGradients[index]/batch_size;
@@ -570,7 +613,8 @@ private:
             m_outputDerivative[i] = cost_derivate(m_outputs[i] , labels[i], costFunction) * derivate(m_outputs[i], outputActivation);
             
             for (int j=0; j<m_numHidden; j++) {
-                int outWeightIndex = getWeightIndex(j, i, m_numOutput);
+//                int outWeightIndex = getWeightIndex(j, i, m_numOutput);
+                int outWeightIndex = getOutputWeightIndex(j, i);
                 m_outputWeightGradients[outWeightIndex]  += m_outputDerivative[i] * m_hiddenOuputs[j];
  //               checkoverflow(m_outputWeightGradients[outWeightIndex]);
             }
@@ -579,7 +623,8 @@ private:
         //calculate hidden layer gradient
         for (int j=1; j<m_numHidden; j++) {
             for (int i=0; i<m_numOutput; i++) {
-                int outWeightIndex = getWeightIndex(j, i, m_numOutput);
+//                int outWeightIndex = getWeightIndex(j, i, m_numOutput);
+                int outWeightIndex = getOutputWeightIndex(j, i);
                 m_hiddenErrorGradientSum[j-1]  += m_outputDerivative[i] * m_outputWeights[outWeightIndex];
             }
         }
@@ -588,7 +633,8 @@ private:
         for (int i=0; i<m_numHidden-1; i++) {
 			double tmpHiddenDeriv = m_hiddenErrorGradientSum[i] * derivate(m_hiddenOuputs[i], hiddenOuputActivation);
             for (int j=0; j<m_numInput; j++) {
-                int hiddenWeightIndex = getWeightIndex(j, i, m_numHidden-1);
+//                int hiddenWeightIndex = getWeightIndex(j, i, m_numHidden-1);
+                int hiddenWeightIndex = getInputWeightIndex(j, i);
                 //m_hiddenWeightGradients[hiddenWeightIndex] += m_hiddenErrorGradientSum[i] *derivate(m_hiddenOuputs[i], hiddenOuputActivation)* m_hiddenWeights[hiddenWeightIndex];
 				m_hiddenWeightGradients[hiddenWeightIndex] += tmpHiddenDeriv* m_hiddenWeights[hiddenWeightIndex];
             }
@@ -598,8 +644,16 @@ private:
         return true;
     }
     
-    int getWeightIndex(int inNodeIndex,int outNodeIndex, int outNodeCount){
+    inline int getWeightIndex(int inNodeIndex,int outNodeIndex, int outNodeCount){
         return inNodeIndex * outNodeCount + outNodeIndex;
+    }
+    
+    inline int getInputWeightIndex(int inNodeIndex,int outNodeIndex){
+        return m_inputWeightIndexCache[inNodeIndex][outNodeIndex];
+    }
+    
+    inline int getOutputWeightIndex(int inNodeIndex,int outNodeIndex){
+        return m_outputWeightIndexCache[inNodeIndex][outNodeIndex];
     }
     
     
