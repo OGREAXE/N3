@@ -649,11 +649,13 @@ private:
     }
     
     inline int getInputWeightIndex(int inNodeIndex,int outNodeIndex){
-        return m_inputWeightIndexCache[inNodeIndex][outNodeIndex];
+//        return m_inputWeightIndexCache[inNodeIndex][outNodeIndex];
+        return inNodeIndex * (m_numHidden-1) + outNodeIndex;
     }
     
     inline int getOutputWeightIndex(int inNodeIndex,int outNodeIndex){
-        return m_outputWeightIndexCache[inNodeIndex][outNodeIndex];
+//        return m_outputWeightIndexCache[inNodeIndex][outNodeIndex];
+        return inNodeIndex * m_numOutput + outNodeIndex;
     }
     
     
